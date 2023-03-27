@@ -1,0 +1,5 @@
+- import_tasks: get_cluster_uuids.yml
+- import_tasks: get_vms_list.yml
+- import_tasks: get_subnet_uuids.yml
+- import_tasks: get_image_uuids.yml
+- import_tasks: provision_vm.yml

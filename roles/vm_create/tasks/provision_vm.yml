@@ -1,0 +1,48 @@
+- name: Create fact with VM template contents
+  set_fact: 
+    vm_body: "{{ lookup('template', 'vm-body.yml.j2') | from_yaml }}"
+
+- name: Create a VM from a disk image
+  uri:
+    url: "{{ api_url_v3 }}/vms"
+    body:
+      "{{ vm_body }}"
+    method: POST
+    validate_certs: false
+    body_format: json
+    headers:
+      Cookie: "{{ session_cookie }}"
+    status_code: 202
+    return_content: true
+  delegate_to: localhost
+  register: vm_creation
+
+- name: Wait till task has ended
+  uri:
+    url: '{{ api_url_v3 }}/tasks/{{ vm_creation.json.status.execution_context.task_uuid }}'
+    method: GET
+    validate_certs: false
+    headers:
+      Cookie: "{{ session_cookie }}"
+    return_content: true
+  register: task_status
+  delegate_to: localhost
+  retries: 10
+  delay: 2
+  until: task_status.json.status == "SUCCEEDED"
+
+- name: Ensures host is present in /etc/hosts
+  lineinfile:
+    path: /etc/hosts
+    regexp: '^{{ vm_ip }}'
+    line: '{{ vm_ip }}           {{ inventory_hostname }}'
+  become: true 
+  delegate_to: localhost
+    
+- name: Waits until SSH responds
+  wait_for:
+    host: '{{ inventory_hostname }}'
+    port: 22
+    state: started
+    timeout: 300
+  delegate_to: localhost

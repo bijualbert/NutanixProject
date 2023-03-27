@@ -1,0 +1,26 @@
+- name: Gets clusters list
+  uri:
+    url: "{{ api_url_v3 }}/clusters/list"
+    body:
+      kind: cluster
+      offset: 0
+      length: 50
+    method: POST
+    validate_certs: false
+    body_format: json
+    status_code: 200
+    force_basic_auth: true
+    user: "{{ prism_user }}"
+    password: "{{ prism_password }}"
+  delegate_to: localhost
+  register: clusters_list
+
+- name: Sets fact for session cookie
+  set_fact:
+    session_cookie: "{{ clusters_list.set_cookie }}"
+
+- name: Gets cluster UUID from its name
+  set_fact:
+    cluster_uuid: '{{ clusters_list.json.entities | json_query(my_query)|first }}'
+  vars:
+    my_query: "[? spec.name=='{{ cluster_name }}'].metadata.uuid"
